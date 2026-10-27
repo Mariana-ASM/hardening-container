@@ -1,16 +1,24 @@
-FROM ubuntu:latest
+# Usa imagem oficial leve baseada em Alpine (reduz superfície de ataque)
+FROM node:20-alpine
 
+# Define diretório de trabalho
 WORKDIR /app
 
-COPY . .
+# Copia manifestos de dependências primeiro para cache eficiente
+COPY app/package*.json ./
 
-RUN apt-get update
-RUN apt-get install -y nodejs npm
+# Instala apenas dependências de produção sem arquivos extras
+RUN npm ci --only=production
 
-RUN npm install
+# Copia o código da aplicação
+COPY app/ ./app/
 
-ENV DB_PASSWORD=123456
+# Aplica o princípio do menor privilégio: usa o usuário sem privilégios nativo
+RUN chown -R node:node /app
+USER node
 
+# Documenta a porta da aplicação
 EXPOSE 3000
 
+# Executa o servidor Node.js
 CMD ["node", "app/server.js"]
