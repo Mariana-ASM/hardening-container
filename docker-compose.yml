@@ -1,14 +1,51 @@
-services:
+version: '3.8'
 
+services:
   app:
     build: .
+    restart: unless-stopped
     ports:
       - "3000:3000"
+    environment:
+      - PORT=${PORT:-3000}
+      - DB_HOST=${DB_HOST}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_PASSWORD=${DB_PASSWORD}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+    networks:
+      - rede_interna
 
   banco:
-    image: mysql:latest
+    image: mysql:8.0-debian
+    restart: unless-stopped
+    # A porta 3306 foi REMOVIDA do host (Segurança de Rede)
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: sistema
-    ports:
-      - "3306:3306"
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.75'
+          memory: 512M
+    networks:
+      - rede_interna
+    volumes:
+      - dados_banco:/var/lib/mysql
+
+networks:
+  rede_interna:
+    driver: bridge
+
+volumes:
+  dados_banco:
